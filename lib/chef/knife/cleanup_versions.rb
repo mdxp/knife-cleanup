@@ -15,17 +15,14 @@
 # limitations under the License.
 #
 
-require 'chef/api_client'
-
-
 module ServerCleanup
-  class Cleanup < Chef::Knife
+  class CleanupVersions < Chef::Knife
 
     deps do
-      #require 'chef/cookbook_loader'
+      require 'chef/api_client'
     end
 
-    banner "knife cleanup"
+    banner "knife cleanup versions (options)"
 
     option :delete,
      :short => "-D",
@@ -58,7 +55,7 @@ module ServerCleanup
         cbv[cb].delete(latest[cb][0])
       end
       
-      # Let see what cookbooks we have in use in environments
+      # Let see what cookbooks we have in use in all environments
       Chef::Environment.list.each_key do |env_list|
         env = Chef::Environment.load(env_list)
         next unless !env.cookbook_versions.empty?
@@ -72,8 +69,8 @@ module ServerCleanup
         end
       end
       
-      print "\e[31mDeleting \e[0m" if config[:delete]
-      puts "Cookbook Versions:"
+      confirm("Do you really want to delete unused cookbook versions from the server")  if config[:delete]
+      ui.msg "Cookbook Versions:"
       key_length = cbv.empty? ? 0 : cbv.keys.map {|name| name.size }.max + 2
       cbv.each_key do |cb|
         print "  #{cb.ljust(key_length)}"
@@ -87,7 +84,7 @@ module ServerCleanup
       end
       
       if !config[:delete]
-        puts "Not deleting unused cookbook versions; use --delete if you want them removed"
+        ui.msg "Not deleting unused cookbook versions; use --delete if you want to remove them"
       end
       
     end
