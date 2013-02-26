@@ -19,7 +19,10 @@ module ServerCleanup
   class CleanupVersions < Chef::Knife
 
     deps do
+      require 'fileutils'
       require 'chef/api_client'
+      require 'chef/cookbook_loader'
+      require 'chef/knife/cookbook_download'
     end
 
     banner "knife cleanup versions (options)"
@@ -77,6 +80,8 @@ module ServerCleanup
         cbv[cb].each do |cb_ver|
           print "#{cb_ver} "
           if config[:delete]
+            dir = ".cleanup/#{cb}/"
+            backup_cookbook(cb,cb_ver,dir)
             delete_cookbook(cb, cb_ver)
           end
         end
@@ -90,8 +95,24 @@ module ServerCleanup
     end
     
     def delete_cookbook(cb, cb_ver)
+      ui.msg "Deleting cookbook #{cb} version #{cb_ver}"
       rest.delete_rest("cookbooks/#{cb}/#{cb_ver}")
       print ". "
+    end
+
+    def backup_cookbook(cb,cb_ver,dir)
+      ui.msg "\nFist backing up cookbook #{cb} version #{cb_ver}"
+      FileUtils.mkdir_p(dir)
+      dld = Chef::Knife::CookbookDownload.new
+      dld.name_args = [cb, cb_ver]
+      dld.config[:download_directory] = dir
+      dld.config[:force] = true
+      begin
+        dld.run
+      rescue
+        ui.msg "Failed to download cookbook #{cb} version #{cb_ver}... Skipping"
+        FileUtils.rm_r(File.join(dir, cb + "-" + cb_ver))
+      end
     end
   end
 end
