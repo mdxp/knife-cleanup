@@ -3,7 +3,7 @@ Knife-Cleanup
 
 This is a [Knife](http://wiki.opscode.com/display/chef/Knife) plugin to help cleanup unused cookbook versions from a chef server. If you have an automated system that creates new cookbook versions for each commit (maybe something like [chef-jenkins](https://github.com/mdxp/chef-jenkins)) then your chef server might end up with thousands of cookbook versions and they most of them are unused. And this is perfectly fine... Still if this annoys you, this plugin will help you cleanup unused versions by looking into each environment and keeping the versions used there and also the latest version of each cookbook. Before deleting any cookbooks it will download and create a backup of them under `.cleanup/cookbook_name/`.
 
-## <a name="installation"></a> Installation
+## Installation
 
 You will need chef installed and a working knife config; development has been done on chef 11, but it should work with any version higher than 0.10.10
 
@@ -34,7 +34,7 @@ Note: this is by no means production ready; I'm using it with success for my nee
   * Cleanup databags
   * Cleanup unused cookbooks
 
-## <a name="development"></a> Development
+## Development
 
 * Source hosted at [GitHub][repo]
 * Report issues/questions/feature requests on [GitHub Issues][issues]
@@ -47,10 +47,15 @@ Pull requests are very welcome! Ideally create a topic branch for every separate
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
 
-## <a name="authors"></a> Authors
+## Authors
 
 Created and maintained by [Marius Ducea][mdxp] (<marius.ducea@gmail.com>)
 
-## <a name="license"></a> License
+## License
 
 Apache License, Version 2.0 (see [LICENSE][license])
+
+[license]:      https://github.com/mdxp/knife-cleanup/blob/master/LICENSE
+[mdxp]:         https://github.com/mdxp
+[repo]:         https://github.com/mdxp/knife-cleanup
+[issues]:       https://github.com/mdxp/knife-cleanup/issues
