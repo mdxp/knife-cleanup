@@ -33,6 +33,13 @@ module ServerCleanup
      :description => "Delete the unused versions of the cookbooks",
      :boolean => true
 
+    option :backup,
+     :short => "-B",
+     :long => "--backup",
+     :description => "Backup the cookbook versions that are being deleted",
+     :boolean => true
+     :default => false
+
     def run
       cookbooks
     end
@@ -81,7 +88,7 @@ module ServerCleanup
           print "#{cb_ver} "
           if config[:delete]
             dir = ".cleanup/#{cb}/"
-            backup_cookbook(cb,cb_ver,dir)
+            backup_cookbook(cb,cb_ver,dir) if config[:backup]
             delete_cookbook(cb, cb_ver)
           end
         end
