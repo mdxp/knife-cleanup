@@ -37,7 +37,7 @@ module ServerCleanup
      :short => "-B",
      :long => "--backup",
      :description => "Backup the cookbook versions that are being deleted",
-     :boolean => true
+     :boolean => true,
      :default => false
 
     def run
