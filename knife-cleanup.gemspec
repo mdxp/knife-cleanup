@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/mdxp/knife-cleanup"
   s.summary     = %q{Chef knife plugin to help cleanup unused versions of cookbooks from a chef server}
   s.description = s.summary
+  s.license     = "Apache 2.0"
 
   s.rubyforge_project = "knife-cleanup"
 
