@@ -73,18 +73,24 @@ module ServerCleanup
       end
 
 
-      # Let see what cookbooks we have in use in all environments
+      # Purge versions used with runlist for env
       Chef::Environment.list.each_key do |env_list|
-        env = Chef::Environment.load(env_list)
-
-        # Purge versions used with runlist for env
+       
         if config[:runlist]
-          runlist = { "run_list"  => [ config[:runlist] ] }
+          purge_for_runlist(cbv, env_list, config[:runlist])
+        end
+
+        purge_for_pinned(cbv, env_list)
+      end
+
+
+def purge_for_runlist(cb_versions, env_name, runlist)
+          runlist_req = { "run_list"  => [ runlist ] }
           begin
             run_cookbooks = \
-              rest.post_rest("/environments/#{env_list}/cookbook_versions", runlist)
+              rest.post_rest("/environments/#{env_name}/cookbook_versions", runlist_req)
           rescue => e
-            ui.msg " run_list invalid for env [#{env_list}]: #{e.message}\n" if config[:verbosity]
+            ui.msg " run_list invalid for env [#{env_name}]: #{e.message}\n" if config[:verbosity]
             next
           end
 
@@ -95,20 +101,29 @@ module ServerCleanup
               "Skipping"
             end
             ui.msg \
-             " keeping #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} for env [#{env_list}]\n" \
+             " keeping #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} for runlist env [#{env_name}]\n" \
                if (purged and config[:verbosity])
           end
         end
+      end
+    end
+
+def 
+      Chef::Environment.list.each_key do |env_list|
+        env = Chef::Environment.load(env_list)
 
         # Purge env pinned versions from candidate list
         next unless !env.cookbook_versions.empty?
         env.cookbook_versions.each_key do |cb|
           cb_ver = env.cookbook_versions[cb].split(" ").last
           begin
-            cbv[cb].delete(cb_ver)
+            purged = cbv[cb].delete(cb_ver)
           rescue
             "Skipping..."
           end
+          ui.msg \
+            " keeping #{cb}:#{cb_ver} for pinned env [#{env_list}]\n" \
+              if (purged and config[:verbosity])
         end
       end
 
