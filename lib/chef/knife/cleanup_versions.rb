@@ -72,20 +72,31 @@ module ServerCleanup
         cbv[cb].delete(latest[cb][0])
       end
 
+
       # Let see what cookbooks we have in use in all environments
       Chef::Environment.list.each_key do |env_list|
         env = Chef::Environment.load(env_list)
 
         # Purge versions used with runlist for env
         if config[:runlist]
-          print "In runlist for env: #{env_list}\n"
           runlist = { "run_list"  => [ config[:runlist] ] }
-          run_cookbooks = \
-             rest.post_rest("/environments/#{env_list}/cookbook_versions", runlist)
+          begin
+            run_cookbooks = \
+              rest.post_rest("/environments/#{env_list}/cookbook_versions", runlist)
+          rescue => e
+            ui.msg " run_list invalid for env [#{env_list}]: #{e.message}\n" if config[:verbosity]
+            next
+          end
+
           run_cookbooks.each_key do |cb|
-            print "  purge #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} ... "
-            purged = cbv[run_cookbooks[cb].name].delete(run_cookbooks[cb].version)
-            print purged.nil? ? "nil" : purged, "\n"
+            begin
+              purged = cbv[run_cookbooks[cb].name].delete(run_cookbooks[cb].version)
+            rescue
+              "Skipping"
+            end
+            ui.msg \
+             " keeping #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} for env [#{env_list}]\n" \
+               if (purged and config[:verbosity])
           end
         end
 
@@ -105,7 +116,9 @@ module ServerCleanup
       ui.msg "Cookbook Versions:"
       key_length = cbv.empty? ? 0 : cbv.keys.map {|name| name.size }.max + 2
       cbv.each_key do |cb|
-        print "  #{cb.ljust(key_length)}"
+        print "  "
+        printf "  %2d ", cbv[cb].length if config[:verbosity]
+        print "#{cb.ljust(key_length)}"
         cbv[cb].each do |cb_ver|
           print "#{cb_ver} "
           if config[:delete]
