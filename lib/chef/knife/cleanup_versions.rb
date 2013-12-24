@@ -75,56 +75,10 @@ module ServerCleanup
 
       # Purge versions used with runlist for env
       Chef::Environment.list.each_key do |env_list|
-       
         if config[:runlist]
-          purge_for_runlist(cbv, env_list, config[:runlist])
+          keep_for_runlist(cbv, env_list, config[:runlist])
         end
-
-        purge_for_pinned(cbv, env_list)
-      end
-
-
-def purge_for_runlist(cb_versions, env_name, runlist)
-          runlist_req = { "run_list"  => [ runlist ] }
-          begin
-            run_cookbooks = \
-              rest.post_rest("/environments/#{env_name}/cookbook_versions", runlist_req)
-          rescue => e
-            ui.msg " run_list invalid for env [#{env_name}]: #{e.message}\n" if config[:verbosity]
-            next
-          end
-
-          run_cookbooks.each_key do |cb|
-            begin
-              purged = cbv[run_cookbooks[cb].name].delete(run_cookbooks[cb].version)
-            rescue
-              "Skipping"
-            end
-            ui.msg \
-             " keeping #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} for runlist env [#{env_name}]\n" \
-               if (purged and config[:verbosity])
-          end
-        end
-      end
-    end
-
-def 
-      Chef::Environment.list.each_key do |env_list|
-        env = Chef::Environment.load(env_list)
-
-        # Purge env pinned versions from candidate list
-        next unless !env.cookbook_versions.empty?
-        env.cookbook_versions.each_key do |cb|
-          cb_ver = env.cookbook_versions[cb].split(" ").last
-          begin
-            purged = cbv[cb].delete(cb_ver)
-          rescue
-            "Skipping..."
-          end
-          ui.msg \
-            " keeping #{cb}:#{cb_ver} for pinned env [#{env_list}]\n" \
-              if (purged and config[:verbosity])
-        end
+        keep_for_pinned(cbv, env_list)
       end
 
       confirm("Do you really want to delete unused cookbook versions from the server")  if config[:delete]
@@ -148,7 +102,47 @@ def
       if !config[:delete]
         ui.msg "Not deleting unused cookbook versions; use --delete if you want to remove them"
       end
+    end
 
+    def keep_for_runlist(cb_versions, env_name, runlist)
+      runlist_req = { "run_list"  => [ runlist ] }
+      begin
+        run_cookbooks = \
+          rest.post_rest("/environments/#{env_name}/cookbook_versions", runlist_req)
+      rescue => e
+        ui.msg " run_list invalid for env [#{env_name}]: #{e.message}\n" if config[:verbosity]
+        return false
+      end
+
+      run_cookbooks.each_key do |cb|
+        begin
+          kept = cb_versions[run_cookbooks[cb].name].delete(run_cookbooks[cb].version)
+        rescue
+          "Skipping"
+        end
+        ui.msg \
+         " keeping #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} for runlist env [#{env_name}]\n" \
+           if (kept and config[:verbosity])
+      end
+      return true
+    end
+
+    def keep_for_pinned(cb_versions, env_name)
+      env = Chef::Environment.load(env_name)
+
+      return false unless !env.cookbook_versions.empty?
+      env.cookbook_versions.each_key do |cb|
+        cb_ver = env.cookbook_versions[cb].split(" ").last
+        begin
+          kept = cb_versions[cb].delete(cb_ver)
+        rescue
+          "Skipping..."
+        end
+        ui.msg \
+          " keeping #{cb}:#{cb_ver} for pinned env [#{env_name}]\n" \
+            if (kept and config[:verbosity])
+      end
+      return true
     end
 
     def delete_cookbook(cb, cb_ver)
