@@ -81,10 +81,10 @@ module ServerCleanup
           print "In runlist for env: #{env_list}\n"
           runlist = { "run_list"  => [ config[:runlist] ] }
           run_cookbooks = \
-             rest.put_rest("/environments/#{env_list}/cookbook_versions", runlist)
-          run_cookbook.each_key do |cb|
-            print "  purge #{cb.name}:#{cb.version} ... "
-            purged = cbv[cb.name].delete(cb.version)
+             rest.post_rest("/environments/#{env_list}/cookbook_versions", runlist)
+          run_cookbooks.each_key do |cb|
+            print "  purge #{run_cookbooks[cb].name}:#{run_cookbooks[cb].version} ... "
+            purged = cbv[run_cookbooks[cb].name].delete(run_cookbooks[cb].version)
             print purged.nil? ? "nil" : purged, "\n"
           end
         end
