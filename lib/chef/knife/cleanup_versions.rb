@@ -40,34 +40,56 @@ module ServerCleanup
      :boolean => true,
      :default => false
 
+    option :runlist,
+     :short => "-R",
+     :long => "--runlist RUNLIST",
+     :description => "Runlist for evaluation, e.g. 'cookbook::default'",
+     :default => false
+
     def run
       cookbooks
     end
 
     def cookbooks
-      ui.msg "Searching for unused cookboks versions..."
+      ui.msg "Searching for unused cookbook versions..."
       all_cookbooks = rest.get_rest("/cookbooks?num_versions=all")
       latest_cookbooks = rest.get_rest("/cookbooks?latest")
-      
-      # All cookbooks
+
+      # All cookbooks eligible for deletion
       cbv = all_cookbooks.inject({}) do |collected, ( cookbook, versions )|
         collected[cookbook] = versions["versions"].map {|v| v['version']}
         collected
       end
-      
+
       # Get the latest cookbooks
       latest = latest_cookbooks.inject({}) do |collected, ( cookbook, versions )|
         collected[cookbook] = versions["versions"].map {|v| v['version']}
         collected
       end
-      
+
+      # Purge the latest cookbooks from candidate list
       latest.each_key do |cb|
         cbv[cb].delete(latest[cb][0])
       end
-      
+
       # Let see what cookbooks we have in use in all environments
       Chef::Environment.list.each_key do |env_list|
         env = Chef::Environment.load(env_list)
+
+        # Purge versions used with runlist for env
+        if config[:runlist]
+          print "In runlist for env: #{env_list}\n"
+          runlist = { "run_list"  => [ config[:runlist] ] }
+          run_cookbooks = \
+             rest.put_rest("/environments/#{env_list}/cookbook_versions", runlist)
+          run_cookbook.each_key do |cb|
+            print "  purge #{cb.name}:#{cb.version} ... "
+            purged = cbv[cb.name].delete(cb.version)
+            print purged.nil? ? "nil" : purged, "\n"
+          end
+        end
+
+        # Purge env pinned versions from candidate list
         next unless !env.cookbook_versions.empty?
         env.cookbook_versions.each_key do |cb|
           cb_ver = env.cookbook_versions[cb].split(" ").last
@@ -78,7 +100,7 @@ module ServerCleanup
           end
         end
       end
-      
+
       confirm("Do you really want to delete unused cookbook versions from the server")  if config[:delete]
       ui.msg "Cookbook Versions:"
       key_length = cbv.empty? ? 0 : cbv.keys.map {|name| name.size }.max + 2
@@ -94,13 +116,13 @@ module ServerCleanup
         end
         print "\n"
       end
-      
+
       if !config[:delete]
         ui.msg "Not deleting unused cookbook versions; use --delete if you want to remove them"
       end
-      
+
     end
-    
+
     def delete_cookbook(cb, cb_ver)
       ui.msg "Deleting cookbook #{cb} version #{cb_ver}"
       rest.delete_rest("cookbooks/#{cb}/#{cb_ver}")
