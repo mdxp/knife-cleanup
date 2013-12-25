@@ -19,19 +19,23 @@ For a list of commands:
 knife cleanup --help
 ```
 
-Currently there is only one command available:
+Options:
 
 ```bash
-knife cleanup versions <-D>
+knife cleanup versions <-D|--delete> <-B|--backup> <-R|--runlist cookbook|role>
 ```
 
-If you run it without --delete (-D) it will show you the versions that would be deleted, but not delete anything. In delete mode it will save first a backup of the version and then proceed to delete it. I've seen various strange situations where knife is not able to download the cookbook version from the server, and be aware that we will skip those cases and there will not be a backup for such corrupted versions. You've been warned. 
+When run without the `-D` option, it will show you the versions that would be deleted, but not delete anything. The default mode only looks for cookbooks that are latest, or are explicitly pinned in an environment. With a `--runlist` option, it will obtain the cookbook versions associated with that run list in each environment. This is useful when, for example, your _default environment has java pinned at '< 1.16.0', and your unpinned environments are using java 1.15.5, and you happen to have a java 1.16.0 version in the server.
+
+The delete mode will not make backup of the version unless you use the '-B|--backup' option.
+
+With the backup option, I've seen various strange situations where knife is not able to download the cookbook version from the server, and be aware that we will skip those cases and there will not be a backup for such corrupted versions. You've been warned. 
 
 Note: this is by no means production ready; I'm using it with success for my needs and hopefully you will find it useful too. Be sure to do a backup your chef server ([knife-backup][knifebackup] before using it, etc. 
 
 ## Todo/Ideas
   
-  * Make backup optional and location of them configurable
+  * Make backup location configurable
   * Cleanup databags
   * Cleanup unused cookbooks
 
