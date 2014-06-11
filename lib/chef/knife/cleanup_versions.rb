@@ -45,7 +45,7 @@ module ServerCleanup
     end
 
     def cookbooks
-      ui.msg "Searching for unused cookboks versions..."
+      ui.msg "Searching for unused cookbook versions..."
       all_cookbooks = rest.get_rest("/cookbooks?num_versions=all")
       latest_cookbooks = rest.get_rest("/cookbooks?latest")
       
