@@ -45,7 +45,7 @@ module ServerCleanup
     end
 
     def cookbooks
-      ui.msg "Searching for unused cookboks versions..."
+      ui.msg "Searching for unused cookbook versions..."
       all_cookbooks = rest.get_rest("/cookbooks?num_versions=all")
       latest_cookbooks = rest.get_rest("/cookbooks?latest")
       
@@ -108,7 +108,7 @@ module ServerCleanup
     end
 
     def backup_cookbook(cb,cb_ver,dir)
-      ui.msg "\nFist backing up cookbook #{cb} version #{cb_ver}"
+      ui.msg "\nFirst backing up cookbook #{cb} version #{cb_ver}"
       FileUtils.mkdir_p(dir)
       dld = Chef::Knife::CookbookDownload.new
       dld.name_args = [cb, cb_ver]
