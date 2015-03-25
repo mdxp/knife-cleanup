@@ -33,6 +33,36 @@ With the backup option, I've seen various strange situations where knife is not 
 
 Note: this is by no means production ready; I'm using it with success for my needs and hopefully you will find it useful too. Be sure to do a backup your chef server ([knife-backup][knifebackup] before using it, etc. 
 
+### Example
+
+Suppose you have 3 Chef roles: webserver, dbserver and appserver, and you've had a lot of cookbook version sprawl, and some cookbook versions are pinned at specific versions in some chef_environments, while others are just using latest. While Chef Server happily stores all your cookbooks, you may run into timeout with the cookbook dependency solver if you have 'too many' cookbook versions. To make sure you keep all the cookbooks you actually need, for this cleanup can create one `omnirole` role:
+
+```
+{
+  "name": "omnirole",
+  "chef_type": "role",
+  "json_class": "Chef::Role",
+  "description": "Not a real role, only for backup/cleanup",
+  "run_list": [
+     "role[webserver]", "role[dbserver]", "role[appserver]"
+     ]
+}
+```
+
+Then run: `knife cleanup versions --runlist "role[omnirole]"`
+
+At this point, knife will collect from chef server a hash of all the cookbooks and their versions. From that hash, knife will purge all the versions that seem to be in-use. The cookbook versions still in the hash are those that are eligible for deletion.
+
+The purging of versions happens like this:
+  - purge the latest version of each cookbook from the hash
+  - iterate over each chef_environment, and
+   - obtain the cookbooks needed for `role[omnirole]` in the environment and purge those versions from the hash
+   - any versions explicitly pinned with '=' for that environment also get purged from the hash.
+
+What remains in the hash after this purging are all the versions that are apparently unused, or are older than the latest. These are listed in the output.
+
+If the output looks sensible you now run: `knife cleanup versions --runlist "role[omnirole]" --delete` to actually do the deletion. You can add the `--backup` option if you don't trust your source control (you are tagging your cookbooks, right?)
+
 ## Todo/Ideas
   
   * Make backup location configurable
