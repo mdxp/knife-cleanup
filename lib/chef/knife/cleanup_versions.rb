@@ -40,6 +40,12 @@ module ServerCleanup
      :boolean => true,
      :default => false
 
+    option :keep,
+     :short => "-k",
+     :long => "--keep",
+     :description => "Keep the last N versions. Default is 1, latest only",
+     :default => 1
+
     def run
       cookbooks
     end
@@ -47,7 +53,7 @@ module ServerCleanup
     def cookbooks
       ui.msg "Searching for unused cookboks versions..."
       all_cookbooks = rest.get_rest("/cookbooks?num_versions=all")
-      latest_cookbooks = rest.get_rest("/cookbooks?latest")
+      latest_cookbooks = rest.get_rest("/cookbooks?num_versions=#{config[:keep]}")
       
       # All cookbooks
       cbv = all_cookbooks.inject({}) do |collected, ( cookbook, versions )|
@@ -62,7 +68,9 @@ module ServerCleanup
       end
       
       latest.each_key do |cb|
-        cbv[cb].delete(latest[cb][0])
+        latest[cb].each do |v|
+          cbv[cb].delete(v)
+        end
       end
       
       # Let see what cookbooks we have in use in all environments
